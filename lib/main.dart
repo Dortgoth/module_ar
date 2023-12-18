@@ -1,7 +1,11 @@
 import 'dart:io';
-import 'package:flutter_inappwebview/flutter_inappwebview.dart';
+
 import 'package:flutter/material.dart';
+
 import 'package:qr_code_scanner/qr_code_scanner.dart';
+
+import 'package:url_launcher/url_launcher.dart';
+
 import 'package:permission_handler/permission_handler.dart';
 
 void main() => runApp(MaterialApp(home: QRScanPage()));
@@ -13,29 +17,43 @@ class QRScanPage extends StatefulWidget {
 
 class _QRScanPageState extends State<QRScanPage> {
   final GlobalKey qrKey = GlobalKey(debugLabel: 'QR');
+
   QRViewController? controller;
+
   String currentUrl = '';
 
-  //@override
-  //void initState() {
-  //  super.initState();
-  //  requestLocationPermission();
-  //}
+  Future<void> openInChrome(String url) async {
+    String chromeUrl;
+
+    if (Platform.isAndroid) {
+      chromeUrl = 'googlechrome://navigate?url=$url';
+    } else if (Platform.isIOS) {
+      chromeUrl = 'googlechrome://$url';
+    } else {
+      chromeUrl = url; // Fallback for other platforms
+    }
+
+    if (await canLaunch(chromeUrl)) {
+      await launch(chromeUrl);
+    } else {
+      throw 'Could not launch $chromeUrl';
+    }
+  }
 
   void _launchURL(String? url) {
     if (url != null) {
-      setState(() {
-        currentUrl = url;
-      });
+      openInChrome(url);
     }
   }
 
   @override
   void reassemble() {
     super.reassemble();
+
     if (Platform.isAndroid) {
       controller!.pauseCamera();
     }
+
     controller!.resumeCamera();
   }
 
@@ -46,24 +64,17 @@ class _QRScanPageState extends State<QRScanPage> {
         children: <Widget>[
           Expanded(
             flex: 5,
-            child: currentUrl.isEmpty
-                ? QRView(
+            child: QRView(
               key: qrKey,
               onQRViewCreated: _onQRViewCreated,
-            )
-                : InAppWebView(
-              initialUrlRequest: URLRequest(url: Uri.parse(currentUrl)),
             ),
           ),
           Expanded(
             flex: 1,
             child: Center(
-              child: currentUrl.isEmpty
-                  ? Text('Scan a QR code')
-                  : ElevatedButton(
-                onPressed: () => setState(() => currentUrl = ''),
-                child: Text('Back to Scanner'),
-              ),
+              child: Text(currentUrl.isEmpty
+                  ? 'Scan a QR code'
+                  : 'URL Opened in Chrome'),
             ),
           )
         ],
@@ -73,26 +84,18 @@ class _QRScanPageState extends State<QRScanPage> {
 
   void _onQRViewCreated(QRViewController controller) {
     this.controller = controller;
+
     controller.scannedDataStream.listen((scanData) async {
       await controller.pauseCamera();
+
       _launchURL(scanData.code); // This now passes a nullable String
     });
   }
 
-  Future<void> requestLocationPermission() async {
-    var status = await Permission.location.request();
-    if (status.isGranted) {
-      // Location permission granted
-    } else if (status.isDenied) {
-      // Location permission denied
-    } else if (status.isPermanentlyDenied) {
-      // The user opted not to grant permission and should be informed that they need to manually enable it in the app settings.
-      openAppSettings();
-    }
-  }
   @override
   void dispose() {
     controller?.dispose();
+
     super.dispose();
   }
 }
