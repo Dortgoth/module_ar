@@ -1,13 +1,12 @@
 
 # Flutter QR Scanner and In-App WebView App
 
-This Flutter application is designed to scan QR codes and open the scanned URLs within an in-app web browser. 
+This Flutter application is designed to scan QR codes and open the scanned URLs within chrome web browser. 
 It's a simple yet powerful tool for accessing web content directly from QR codes.
 
 ## Features
 
 - **QR Code Scanning**: Scan any QR code quickly and easily.
-- **In-App Web Browser**: Open and view URLs directly in the app without needing an external browser.
 - **Back to Scanner**: Easily switch back to the scanner after viewing a web page.
 
 ## Getting Started
